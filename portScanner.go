@@ -26,7 +26,7 @@ func scanPort(address string, port int, ch chan<- int) {
 func main() {
 	// Check that the correct number of command line arguments were provided
 	if len(os.Args) != 4 {
-		fmt.Println("Use: ./port-scanner [address] [start port] [end port]")
+		fmt.Println("Use: ./Go-portScanner [address] [start port] [end port]")
 		os.Exit(1)
 	}
 
