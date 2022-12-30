@@ -5,33 +5,16 @@ import (
 	"net"
 	"os"
 	"strconv"
-	"time"
+	"sync"
 )
 
-// scanPort attempts to establish a TCP connection to the specified address and port.
-// If the connection is successful, it sends the port number through the channel and if not it sends a 0
-func scanPort(address string, port int, ch chan<- int) {
-	// Attempt to establish a TCP connection
-	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", address, port), time.Second*10)
-	if err != nil {
-		// If the connection fails, send 0 through the channel
-		ch <- 0
-		return
-	}
-	// If the connection succeeds, close it and send the port number through the channel
-	conn.Close()
-	ch <- port
-}
-
 func main() {
-	// Check that the correct number of command line arguments were provided
 	if len(os.Args) != 4 {
-		fmt.Println("Use: ./Go-portScanner [address] [start port] [end port]")
+		fmt.Println("Usage: ./P-SCAN IP_ADDRESS START_PORT END_PORT")
 		os.Exit(1)
 	}
 
-	// Parse the command line arguments
-	address := os.Args[1]
+	ip := os.Args[1]
 	start, err := strconv.Atoi(os.Args[2])
 	if err != nil {
 		fmt.Println("Invalid start port")
@@ -42,27 +25,44 @@ func main() {
 		fmt.Println("Invalid end port")
 		os.Exit(1)
 	}
-
-	if end < start {
-		fmt.Println("End port must be greater than start port")
+	if start > end {
+		fmt.Println("Start port must be less than or equal to end port")
 		os.Exit(1)
 	}
 
-	fmt.Printf("------------Scanning ports---------------- %d-%d on %s...\n", start, end, address)
+	// Use a wait group to track the status of the concurrent goroutines
+	var wg sync.WaitGroup
 
-	// Create a channel for receiving the results of the port scans
-	ch := make(chan int)
+	// Scan the specified range of ports
+	for port := start; port <= end; port++ {
+		wg.Add(1)
 
-	// Launch a goroutine for each port to be scanned
-	for i := start; i <= end; i++ {
-		go scanPort(address, i, ch)
+		// Launch a goroutine to scan the port
+		go func(port int) {
+			defer wg.Done() // Decrement the wait group counter when the goroutine finishes
+
+			// Try to connect to the host and port
+			conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", ip, port))
+			if err != nil {
+				return
+			} else {
+				// If there is no error, the port is open
+				fmt.Printf("%d: open\n", port)
+
+				// Look up the service name for the port
+				service, err := net.LookupPort("tcp", strconv.Itoa(port))
+				if err != nil {
+					fmt.Println("Unable to lookup service name")
+				} else {
+					fmt.Printf("Service name: %s\n", service)
+				}
+
+				// Remember to close the connection when finished
+				conn.Close()
+			}
+		}(port) // Pass the current port number to the goroutine
 	}
 
-	// Receive the results of the port scans from the channel
-	for i := start; i <= end; i++ {
-		port := <-ch
-		if port != 0 {
-			fmt.Printf("Port %d is open\n", port)
-		}
-	}
+	// Wait for all goroutines to finish before exiting
+	wg.Wait()
 }
