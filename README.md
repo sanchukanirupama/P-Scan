@@ -1,12 +1,10 @@
-# Go-PortScanner
+# P-Scan
 
 Simple and fast network port scanner build to learn go and to learn concurrency in go
 
 Run:
--> go run portScanner.go <ip_address> <start_port> <end_port>
+-> go run main.go
 
-or
+<img width="493" alt="image" src="https://user-images.githubusercontent.com/56119075/224558467-9866ad43-e8c1-4f07-ab98-c3519ac79f1a.png">
 
--> go build
 
--> ./P-SCAN <ip_address> <start_port> <end_port> -> Ex: ./P-SCAN 127.0.0.1 80 800
